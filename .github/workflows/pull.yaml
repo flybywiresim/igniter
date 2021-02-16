@@ -15,9 +15,9 @@ jobs:
         run: npm ci
       - name: Dry run release
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npx semantic-release --dry-run --no-ci
+        run: npx semantic-release --dry-run
 
   build:
     name: build
