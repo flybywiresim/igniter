@@ -1,5 +1,12 @@
 {
-  "private": true,
+  "name": "@flybywiresim/igniter",
+  "version": "1.0.0",
+  "description": "An intelligent task runner written in Typescript.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/flybywiresim/igniter.git"
+  },
+  "author": "Theodore Messinezis",
   "main": "dist/library.mjs",
   "scripts": {
     "build": "rollup -c",
