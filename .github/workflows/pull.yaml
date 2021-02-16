@@ -15,9 +15,10 @@ jobs:
         run: npm ci
       - name: Dry run release
         env:
+          GITHUB_HEAD_REF: $GITHUB_HEAD_REF
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npx semantic-release --dry-run
+        run: npx semantic-release --dry-run --debug -b $GITHUB_HEAD_REF
 
   build:
     name: build

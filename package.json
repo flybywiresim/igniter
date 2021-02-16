@@ -1,6 +1,5 @@
 {
   "name": "@flybywiresim/igniter",
-  "version": "1.0.0",
   "description": "An intelligent task runner written in Typescript.",
   "repository": {
     "type": "git",
