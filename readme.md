@@ -1,31 +1,34 @@
-Run all
+Run all steps with cache hash checking.
 ```
-./igniter list
-```
-
-Run all
-```
-./igniter run
+./igniter
 ```
 
-Run tasks that match the regex name
+Run all steps, ignoring cache hash checking, still generate a cache.
 ```
-./igniter run a320:instruments
-```
-
-Run tasks that match the regex name without running required tasks.
-```
-./igniter run instruments --only
+./igniter --force
 ```
 
-Ignore hash-based task skipping.
+Run all steps, ignoring cache hash checking, do not generate a cache.
 ```
-./igniter run --force
+./igniter --no-cache
 ```
 
-list [prefix]
-run [prefix]
+Run tasks whos names match "instruments" using regex.
+```
+./igniter instruments
+```
 
---skip
---only
---force
+Run tasks whos names match "instruments" or "manifest" using regex.
+```
+./igniter "instruments|manifest"
+```
+
+Regex step matching and flags can be used together like this:
+```
+./igniter --no-cache -- "instruments|manifest"
+```
+
+or like this:
+```
+./igniter "behaviors|manifest" --force
+```
