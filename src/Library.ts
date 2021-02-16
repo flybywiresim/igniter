@@ -1,6 +1,6 @@
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { Executor } from './types';
+import { Executor } from './Interfaces';
 
 /**
  * Lorem Ipsum Dolor Sit Amet.

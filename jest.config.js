@@ -1,10 +1,11 @@
 module.exports = {
-  collectCoverageFrom: [
-    "src/**/*.ts"
-  ],
-  preset: "ts-jest",
-  testEnvironment: "node",
-  testMatch: [
-    "**/tests/**/*.ts"
-  ]
+    automock: true,
+    collectCoverageFrom: [
+        'src/**/*.ts'
+    ],
+    preset: 'ts-jest',
+    testEnvironment: 'node',
+    testMatch: [
+        '**/tests/**/*.ts'
+    ],
 };

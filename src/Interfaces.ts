@@ -29,21 +29,6 @@ export interface Step {
     shouldRun?: ShouldRunConfig,
 }
 
-/**
- * Lorem Ipsum Dolor Sit Amet.
- */
-export interface Context {
-    /**
-     *
-     */
-    matchStepNameRegex: RegExp,
-
-    /**
-     *
-     */
-    verbosity: 'low' | 'medium' | 'high',
-}
-
 export interface Config {
     /**
      * The name of the current igniter project.
@@ -62,10 +47,7 @@ export interface Config {
     steps: Step[][],
 }
 
-/**
-* Lorem Ipsum Dolor Sit Amet.
-*/
-export const defaultContext: Context = {
-    matchStepNameRegex: undefined,
-    verbosity: 'low',
-};
+export interface Context {
+    matchStepNameRegex: RegExp|undefined,
+    configFilePath: string|undefined,
+}

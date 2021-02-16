@@ -1,0 +1,15 @@
+{
+  "name": "Node",
+  "remoteUser": "node",
+  "build": {
+    "dockerfile": "Dockerfile",
+  },
+  "settings": {
+    "terminal.integrated.shell.linux": "/bin/bash"
+  },
+  "extensions": [
+    "eamodio.gitlens",
+    "dbaeumer.vscode-eslint",
+    "EditorConfig.EditorConfig"
+  ]
+}

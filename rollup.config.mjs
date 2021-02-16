@@ -5,19 +5,19 @@ import commonjs from '@rollup/plugin-commonjs';
 
 export default [
     {
-        input: 'src/cli.ts',
+        input: 'src/Binary.ts',
         output: {
-            file: './dist/igniter.cli.mjs',
+            file: './dist/binary.mjs',
         },
         plugins: [
             typescript(),
             nodeResolve(),
             commonjs(),
-            shebang({ include: 'dist/igniter.cli.mjs' }),
+            shebang({ include: 'dist/binary.mjs' }),
         ],
     },
     {
-        input: 'src/library.ts',
+        input: 'src/Library.ts',
         output: {
             file: './dist/library.mjs',
         },
