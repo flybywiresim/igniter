@@ -1,5 +1,6 @@
 {
   "name": "@flybywiresim/igniter",
+  "version": "1.0.0",
   "description": "An intelligent task runner written in Typescript.",
   "repository": {
     "type": "git",
@@ -16,7 +17,6 @@
     "@rollup/plugin-commonjs": "^17.1.0",
     "@rollup/plugin-node-resolve": "^11.2.0",
     "@rollup/plugin-typescript": "^8.2.0",
-    "@semantic-release/exec": "^5.0.0",
     "@types/jest": "^26.0.20",
     "@types/minimist": "^1.2.1",
     "@types/mkdirp": "^1.0.1",
@@ -32,7 +32,6 @@
     "reflect-metadata": "^0.1.13",
     "rollup": "^2.39.0",
     "rollup-plugin-add-shebang": "^0.3.1",
-    "semantic-release": "^17.3.9",
     "ts-jest": "^26.5.1",
     "tslib": "^2.1.0",
     "tsyringe": "^4.4.0",

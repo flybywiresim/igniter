@@ -5,28 +5,6 @@ on:
       - master
 jobs:
 
-  preview:
-    name: preview
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v1
-      - name: Setup npm cache
-        uses: actions/cache@v2
-        with:
-          path: ~/.npm
-          key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-
-      - name: Install dependencies
-        run: npm ci
-      - name: Dry run release
-        env:
-          GITHUB_HEAD_REF: $GITHUB_HEAD_REF
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npx semantic-release --dry-run --debug -b $GITHUB_HEAD_REF
-
   build:
     name: build
     runs-on: ubuntu-latest
