@@ -65,7 +65,7 @@ export default class GenericTask implements Task {
     }
 
     protected shouldSkipCache(taskKey: string) {
-        if (this.context.cache === undefined) return false;
+        if (this.context.cache === undefined || this.hashFolders.length === 0) return false;
 
         const cachedHash = this.context.cache.get(taskKey);
         if (cachedHash === undefined) return false;
