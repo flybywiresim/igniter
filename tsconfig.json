@@ -5,12 +5,14 @@
     "tests/**/*.ts",
   ],
   "compilerOptions": {
-    "target": "es2017",
-    "module": "ESNext",
-    "esModuleInterop": true,
-    "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
+    "declaration": true,
+    "emitDecoratorMetadata": true,
+    "esModuleInterop": true,
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "target": "es2017",
   }
 }

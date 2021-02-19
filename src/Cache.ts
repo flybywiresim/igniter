@@ -1,28 +1,31 @@
 import fs from 'fs';
 import path from 'path';
 import mkdirp from 'mkdirp';
-import { absolute } from './Helpers';
+import { storage } from './Helpers';
+import { Cache as CacheContract } from './Library/Contracts/Cache';
+import { Context } from './Library/Contracts/Context';
 
-export default class Cache {
+export default class Cache implements CacheContract {
     private map = new Map<string, string>();
 
     /**
-     * Constructs a new Cache object.
-     * Imports cache data from json file if it exists.
+     * Create and auto-import cache from json.
      * @param relativePath The relativePath to the cache json file.
      */
-    constructor(relativePath = '.igniter/cache.json') {
-        const absolutePath = absolute(relativePath);
-        if (!fs.existsSync(absolutePath)) return;
-        const fileContents = fs.readFileSync(absolutePath).toString();
-        this.map = new Map(JSON.parse(fileContents));
+    constructor(protected context: Context, relativePath = '.igniter/cache.json') {
+        this.import(relativePath);
     }
 
     /**
-     * Clears all values from the cache.
+     * Imports cache data from json file if it exists.
+     * @param relativePath The relativePath to the cache json file.
      */
-    clear(): void {
-        this.map.clear();
+    import(relativePath = '.igniter/cache.json'): CacheContract {
+        const absolutePath = storage(this.context, relativePath);
+        if (!fs.existsSync(absolutePath)) return this;
+        const fileContents = fs.readFileSync(absolutePath).toString();
+        this.map = new Map(JSON.parse(fileContents));
+        return this;
     }
 
     /**
@@ -45,7 +48,7 @@ export default class Cache {
      */
     async export(relativePath = '.igniter/cache.json'): Promise<void> {
         const fileContents = JSON.stringify([...this.map]);
-        const absolutePath = absolute(relativePath);
+        const absolutePath = storage(this.context, relativePath);
         await mkdirp(path.dirname(absolutePath));
         fs.writeFileSync(absolutePath, fileContents);
     }

@@ -1,7 +1,8 @@
 import { nodeResolve } from '@rollup/plugin-node-resolve';
-import typescript from '@rollup/plugin-typescript';
 import shebang from 'rollup-plugin-add-shebang';
 import commonjs from '@rollup/plugin-commonjs';
+import typescript from "@wessberg/rollup-plugin-ts";
+import json from '@rollup/plugin-json';
 
 export default [
     {
@@ -13,13 +14,14 @@ export default [
             typescript(),
             nodeResolve(),
             commonjs(),
+            json(),
             shebang({ include: 'dist/binary.mjs' }),
         ],
     },
     {
-        input: 'src/Library.ts',
+        input: 'src/Library/Index.ts',
         output: {
-            file: './dist/library.mjs',
+            file: './dist/index.mjs',
         },
         plugins: [
             typescript(),

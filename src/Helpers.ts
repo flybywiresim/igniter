@@ -3,59 +3,38 @@ import path from 'path';
 import hasha from 'hasha';
 import findUp from 'find-up';
 import { fileURLToPath } from 'url';
-import { container } from 'tsyringe';
-import { Context, Config } from './Interfaces';
+import { Task } from './Library/Contracts/Task';
+import { Context } from './Library/Contracts/Context';
 
 /**
  * Handles registering context and config with the dependency injection container.
- * @param context The cli generated context.
  */
-export const bootstrap = async (context: Context): Promise<void> => {
-    if (context.configFilePath === undefined) {
-        // We need to find the config file ourselves.
-        context.configFilePath = await findUp('igniter.config.mjs');
-        if (context.configFilePath === undefined) throw Error('Igniter config file not found.');
-    } else if (!path.isAbsolute(context.configFilePath)) {
-        // Replace the configFilePath with an absolute path instead.
-        context.configFilePath = path.resolve(context.configFilePath);
-    }
+export const findConfigPath = async (configName: string): Promise<string> => {
+    const configPath = await findUp(configName);
+    if (configPath === undefined) throw Error('Igniter config file not found.');
+    return configPath;
+};
 
-    // Final check whether the context file actually exists...
-    if (!fs.existsSync(context.configFilePath)) throw Error(`${context.configFilePath} does not exist.`);
-
-    // Register the final context with the dependency injection container.
-    container.register<Context>('context', { useValue: context });
-
-    // We're inside an ES module, so __filename and __dirname need to be defined.
+export const loadConfigTask = async (context: Context): Promise<Task> => {
     // eslint-disable-next-line no-underscore-dangle, @typescript-eslint/naming-convention
     const __filename = fileURLToPath(import.meta.url);
     // eslint-disable-next-line no-underscore-dangle, @typescript-eslint/naming-convention
     const __dirname = path.dirname(__filename);
 
-    // Import the config from the config ES module (export default).
-    const relativePath = path.relative(__dirname, context.configFilePath);
-    const configModule = await import(relativePath);
-    const config = configModule.default as Config;
-
-    // Register the config with the dependency injection container.
-    container.register<Config>('config', { useValue: config });
+    const relativePath = path.relative(__dirname, context.configPath);
+    return (await import(relativePath)).default;
 };
 
 /**
- * Join a relative path with the context working directory to get an absolute path.
- * @param relativePath The relative path to join with the context working directory.
- * @returns The context working directory absolute path joined with relative path.
+ * Join a relative path with the config folder path to get our storage path.
  */
-export const absolute = (relativePath: string = ''): string => {
-    const context = container.resolve<Context>('context');
-    if (context === undefined) throw Error('Could not resolve context.');
-    const workingDirectory = path.dirname(context.configFilePath);
+export const storage = (context: Context, relativePath: string = ''): string => {
+    const workingDirectory = path.dirname(context.configPath);
     return path.join(workingDirectory, relativePath);
 };
 
 /**
  * Generates a hash from an absolute path.
- * @param absolutePath The absolute path.
  */
 export const generateHashFromPath = (absolutePath: string): string => {
     // The hash is undefined if the path doesn't exist.
@@ -69,7 +48,6 @@ export const generateHashFromPath = (absolutePath: string): string => {
 
 /**
  * Generates a hash from an array of absolute paths.
- * @param absolutePaths The array of absolute paths.
  */
 export const generateHashFromPaths = (absolutePaths: string[]): string =>
     hasha(absolutePaths.map((p) => hasha(path.basename(p) + generateHashFromPath(p))).join(''));
