@@ -1,5 +1,4 @@
 *
-!*/
-tests/
-src/
-node_modules/
+!dist/index.mjs
+!dist/index.d.ts
+!dist/binary.mjs
