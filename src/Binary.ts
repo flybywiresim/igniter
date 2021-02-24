@@ -10,6 +10,7 @@ const binary = (new Command()).version(version)
     .option('-r, --regex <regex>', 'regular expression used to filter tasks')
     .option('-i, --invert', 'if true, regex will be used to reject tasks')
     .option('--no-cache', 'do not skip tasks, even if hash matches cache')
+    .option('--no-tty', 'do not show updating output, just show a single render')
     .option('-d, --dry-run', 'skip all tasks to show configuration')
     .option('--debug', 'stop when an exception is thrown and show trace')
     .parse(process.argv);
@@ -35,7 +36,8 @@ const configRootTask = await loadConfigTask(context);
 configRootTask.useContext(context);
 
 // Run and Render the config root task.
-await Renderer(configRootTask);
+// If we have tty, render every 100ms, other perform single render.
+await Renderer(configRootTask, options.tty ? 100 : 0);
 
 // Export the new cache.
 if (context.cache) context.cache.export();

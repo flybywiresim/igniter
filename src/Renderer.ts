@@ -11,6 +11,14 @@ export default async (task: Task, refreshRate = 100) => {
         console.log(view); // eslint-disable-line no-console
     };
 
+    // If refreshRate is zero we just want to run the root task.
+    // Then we'll render ONCE to get the final output, and return.
+    if (refreshRate === 0) {
+        await task.run();
+        render();
+        return;
+    }
+
     const interval = setInterval(render, refreshRate);
     await task.run();
     clearInterval(interval);
