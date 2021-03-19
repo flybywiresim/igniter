@@ -7,6 +7,8 @@ import { Context } from '../Contracts/Context';
 export default class GenericTask implements Task {
     protected context: Context;
 
+    protected errorOutput: string;
+
     public status: TaskStatus = TaskStatus.Queued;
 
     /**
@@ -50,6 +52,7 @@ export default class GenericTask implements Task {
         } catch (error) {
             if (this.context.debug) throw error;
             this.status = TaskStatus.Failed;
+            if ('stderr' in error) this.errorOutput = error.stderr;
         }
     }
 
@@ -87,6 +90,10 @@ export default class GenericTask implements Task {
             if (s === TaskStatus.Skipped) return ['↪', chalk.gray];
             return ['⊙', chalk.magenta]; // Replaced with spinner :)
         })(this.status);
+        if (this.status === TaskStatus.Failed && this.errorOutput !== undefined) {
+            const error = `${indent}  ${this.errorOutput.split(/\r?\n/).join(`\n${indent}  `)}`;
+            return colour(`${indent + symbol} ${this.key}\n${error}`);
+        }
         return colour(`${indent + symbol} ${this.key}`);
     }
 }
