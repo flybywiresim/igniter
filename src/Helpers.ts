@@ -21,7 +21,7 @@ export const loadConfigTask = async (context: Context): Promise<Task> => {
     // eslint-disable-next-line no-underscore-dangle, @typescript-eslint/naming-convention
     const __dirname = path.dirname(__filename);
 
-    const relativePath = path.relative(__dirname, context.configPath);
+    const relativePath = path.relative(__dirname, context.configPath).replace('\\', '/');
     return (await import(relativePath)).default;
 };
 
