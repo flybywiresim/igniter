@@ -1,3 +1,4 @@
+import { Pool } from 'task-pool';
 import { Cache } from './Cache';
 
 export interface Context {
@@ -7,4 +8,5 @@ export interface Context {
     filterRegex: RegExp|undefined,
     invertRegex: boolean,
     cache?: Cache,
+    taskPool: Pool,
 }
