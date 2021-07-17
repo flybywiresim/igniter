@@ -1,4 +1,5 @@
 import { Command } from 'commander';
+import { Pool } from 'task-pool';
 import { findConfigPath, loadConfigTask } from './Helpers';
 import { Context } from './Library/Contracts/Context';
 import { version } from '../package.json';
@@ -7,6 +8,7 @@ import Cache from './Cache';
 
 const binary = (new Command()).version(version)
     .option('-c, --config <filename>', 'set the configuration file name', 'igniter.config.mjs')
+    .option('-j, --num-workers <number>', 'set the maximum number of workers to use', `${Number.MAX_SAFE_INTEGER}`)
     .option('-r, --regex <regex>', 'regular expression used to filter tasks')
     .option('-i, --invert', 'if true, regex will be used to reject tasks')
     .option('--no-cache', 'do not skip tasks, even if hash matches cache')
@@ -24,6 +26,7 @@ const context: Context = {
     dryRun: options.dryRun,
     filterRegex: options.regex ? RegExp(options.regex) : undefined,
     invertRegex: options.invert,
+    taskPool: new Pool({ limit: options.numWorkers }),
 };
 
 // Create and register a cache if needed.
