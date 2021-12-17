@@ -26,7 +26,7 @@ const context: Context = {
     dryRun: options.dryRun,
     filterRegex: options.regex ? RegExp(options.regex) : undefined,
     invertRegex: options.invert,
-    taskPool: new Pool({ limit: options.numWorkers }),
+    taskPool: new Pool({ limit: options.numWorkers, timeout: 120000 }),
 };
 
 // Create and register a cache if needed.
