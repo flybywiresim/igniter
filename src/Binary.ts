@@ -11,6 +11,7 @@ const binary = (new Command()).version(version)
     .option('-j, --num-workers <number>', 'set the maximum number of workers to use', `${Number.MAX_SAFE_INTEGER}`)
     .option('-r, --regex <regex>', 'regular expression used to filter tasks')
     .option('-i, --invert', 'if true, regex will be used to reject tasks')
+    .option('-t, --timeout <timeout>', 'a timeout igniter will await before launching the next batch of tasks', `120000`)
     .option('--no-cache', 'do not skip tasks, even if hash matches cache')
     .option('--no-tty', 'do not show updating output, just show a single render')
     .option('-d, --dry-run', 'skip all tasks to show configuration')
@@ -26,7 +27,7 @@ const context: Context = {
     dryRun: options.dryRun,
     filterRegex: options.regex ? RegExp(options.regex) : undefined,
     invertRegex: options.invert,
-    taskPool: new Pool({ limit: options.numWorkers, timeout: 120000 }),
+    taskPool: new Pool({ limit: options.numWorkers, timeout: options.timeout }),
 };
 
 // Create and register a cache if needed.
