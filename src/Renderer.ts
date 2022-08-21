@@ -16,7 +16,7 @@ export default async (task: Task, refreshRate = 100) => {
     if (refreshRate === 0) {
         await task.run();
         render();
-        if (task.status !== TaskStatus.Success) {
+        if (task.status === TaskStatus.Failed) {
             process.exitCode = 1;
         }
         return;
@@ -26,7 +26,7 @@ export default async (task: Task, refreshRate = 100) => {
     await task.run();
     clearInterval(interval);
     render();
-    if (task.status !== TaskStatus.Success) {
+    if (task.status === TaskStatus.Failed) {
         process.exitCode = 1;
     }
 };
