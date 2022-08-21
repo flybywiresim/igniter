@@ -33,7 +33,7 @@ export default class TaskOfTasks implements Task {
         if (this.tasks.every((task) => task.status === TaskStatus.Skipped)) return TaskStatus.Skipped;
         if (this.tasks.every((task) => task.status === TaskStatus.Failed)) return TaskStatus.Failed;
         if (this.tasks.some((task) => task.status === TaskStatus.Running)) return TaskStatus.Running;
-        if (this.tasks.some((task) => task.status === TaskStatus.Failed)) return TaskStatus.Warning;
+        if (this.tasks.some((task) => task.status === TaskStatus.Failed)) return TaskStatus.Failed;
         return TaskStatus.Success;
     }
 
@@ -68,7 +68,6 @@ export default class TaskOfTasks implements Task {
             if (s === TaskStatus.Success) return ['✓', chalk.green];
             if (s === TaskStatus.Skipped) return ['↪', chalk.gray];
             if (s === TaskStatus.Failed) return ['✖', chalk.red];
-            if (s === TaskStatus.Warning) return ['⚠', chalk.yellow];
             return ['⊙', chalk.magenta]; // Replaced with spinner :)
         })(this.status);
 

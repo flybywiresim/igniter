@@ -1,4 +1,4 @@
-import { Task } from './Library/Contracts/Task';
+import { Task, TaskStatus } from './Library/Contracts/Task';
 
 export default async (task: Task, refreshRate = 100) => {
     const spinner = ['◜', '◠', '◝', '◞', '◡', '◟'];
@@ -16,6 +16,9 @@ export default async (task: Task, refreshRate = 100) => {
     if (refreshRate === 0) {
         await task.run();
         render();
+        if (task.status !== TaskStatus.Success) {
+            process.exitCode = 1;
+        }
         return;
     }
 
@@ -23,4 +26,7 @@ export default async (task: Task, refreshRate = 100) => {
     await task.run();
     clearInterval(interval);
     render();
+    if (task.status !== TaskStatus.Success) {
+        process.exitCode = 1;
+    }
 };

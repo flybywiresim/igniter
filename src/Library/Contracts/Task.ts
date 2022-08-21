@@ -32,11 +32,6 @@ export enum TaskStatus {
      * If group, all sub-tasks skipped.
      */
     Skipped,
-
-    /**
-     * Only used for groups, one or more sub-tasks failed.
-     */
-    Warning,
 }
 
 export interface Task {
