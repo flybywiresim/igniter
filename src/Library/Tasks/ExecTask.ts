@@ -1,6 +1,7 @@
 import { exec } from 'child_process';
 import GenericTask from './GenericTask';
 import { TaskStatus } from '../Contracts/Task';
+import ExecTaskError from './ExecTaskError';
 
 export default class ExecTask extends GenericTask {
     constructor(
@@ -26,11 +27,7 @@ export default class ExecTask extends GenericTask {
                         if (code === 0) {
                             resolve(code);
                         } else {
-                            const err = new Error();
-
-                            (err as any).stderr = stderr;
-
-                            reject(err);
+                            reject(new ExecTaskError(stderr));
                         }
                     });
                 }));
