@@ -38,7 +38,7 @@ declare module "task-pool" {
 
         queue: PoolTask<any>[]
 
-        wrap(Function, options?: Partial<PoolTaskOptions>): PoolTaskFactory<TPoolStyle>
+        wrap(Function: (...args: any[]) => Promise<any>, options?: Partial<PoolTaskOptions>): PoolTaskFactory<TPoolStyle>
 
         next()
 

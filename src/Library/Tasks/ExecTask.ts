@@ -1,5 +1,4 @@
 import { exec } from 'child_process';
-import { promisify } from 'util';
 import GenericTask from './GenericTask';
 import { TaskStatus } from '../Contracts/Task';
 
@@ -12,7 +11,29 @@ export default class ExecTask extends GenericTask {
         const commands = typeof command === 'string' ? [command] : command;
         super(key, async () => {
             for await (const cmd of commands) {
-                const poolExec = this.context.taskPool.promise.wrap(promisify(exec));
+                const poolExec = this.context.taskPool.promise.wrap((execCmd) => new Promise((resolve, reject) => {
+                    const p = exec(execCmd);
+
+                    let stderr = '';
+                    p.stderr.on('data', (data) => {
+                        stderr += data;
+                    });
+
+                    p.on('exit', (code) => {
+                        p.stdout.destroy();
+                        p.stderr.destroy();
+
+                        if (code === 0) {
+                            resolve(code);
+                        } else {
+                            const err = new Error();
+
+                            (err as any).stderr = stderr;
+
+                            reject(err);
+                        }
+                    });
+                }));
 
                 const task = poolExec(cmd);
 
