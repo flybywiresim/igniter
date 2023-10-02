@@ -3,6 +3,7 @@ import chalk from 'chalk';
 import { TaskRunner, Task, TaskStatus } from '../Contracts/Task';
 import { generateHashFromPaths, storage } from '../../Helpers';
 import { Context } from '../Contracts/Context';
+import ExecTaskError from './ExecTaskError';
 
 export default class GenericTask implements Task {
     protected context: Context;
@@ -50,9 +51,15 @@ export default class GenericTask implements Task {
                 this.context.cache.set(taskKey, generateHash);
             }
         } catch (error) {
-            if (this.context.debug) throw error;
+            if (this.context.debug) {
+                throw error;
+            }
+
             this.status = TaskStatus.Failed;
-            if ('stderr' in error) this.errorOutput = error.stderr;
+
+            if (error instanceof ExecTaskError) {
+                this.errorOutput = error.stderr;
+            }
         }
     }
 
