@@ -2,9 +2,10 @@
   "include": [
     "src/**/*.ts",
     "src/**/*.d.ts",
-    "tests/**/*.ts",
   ],
   "compilerOptions": {
+    "strict": true,
+    "skipLibCheck": true,
     "allowSyntheticDefaultImports": true,
     "declaration": true,
     "emitDecoratorMetadata": true,
@@ -13,6 +14,6 @@
     "module": "ESNext",
     "moduleResolution": "node",
     "resolveJsonModule": true,
-    "target": "es2017",
+    "target": "es2017"
   }
 }

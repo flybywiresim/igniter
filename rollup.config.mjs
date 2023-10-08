@@ -11,7 +11,7 @@ export default [
             file: './dist/binary.mjs',
         },
         plugins: [
-            typescript(),
+            typescript({ exclude: ["node_modules/**/*.json"] }),
             nodeResolve(),
             commonjs(),
             json(),

@@ -6,28 +6,67 @@ import { Context } from '../Contracts/Context';
 import ExecTaskError from './ExecTaskError';
 
 export default class GenericTask implements Task {
-    protected context: Context;
+    protected _context: Context | undefined;
 
-    protected errorOutput: string;
+    private taskStatus: TaskStatus = TaskStatus.Queued;
 
-    public status: TaskStatus = TaskStatus.Queued;
+    public parent: Task | null = null;
+
+    public failedString: string | null = null;
+
+    public get status() {
+        return this.taskStatus;
+    }
+
+    protected get context(): Context {
+        const context = this._context;
+
+        if (!context) {
+            throw new Error('.context called with no context set on task');
+        }
+
+        return context;
+    }
+
+    public set status(newStatus: TaskStatus) {
+        if (this.taskStatus !== newStatus) {
+            this.taskStatus = newStatus;
+
+            for (const cb of this.statusChangeCallbacks) {
+                cb(this);
+            }
+        }
+    }
+
+    private statusChangeCallbacks: ((task: Task) => void)[] = [];
 
     /**
-     * @param key The key of this generic task.
+     * @param name The name of this generic task.
      * @param executor The TaskRunner used to run this task.
      * @param hashFolders Folders used to create caching hash.
      */
     constructor(
-        public key: string,
+        private name: string,
         private executor: TaskRunner,
         private hashFolders: string[] = [],
     ) {}
 
+    get key(): string {
+        if (!this.context.showNestedTaskKeys) {
+            return this.name;
+        }
+
+        const prefix = this.parent ? `${this.parent.key}.` : '';
+
+        return `${prefix}${this.name}`;
+    }
+
     /**
      * Register a context with the task (and sub-tasks).
      */
-    useContext(context: Context) {
-        this.context = context;
+    useContext(context: Context, parentTask: Task) {
+        this._context = context;
+        this.parent = parentTask;
     }
 
     /**
@@ -41,7 +80,6 @@ export default class GenericTask implements Task {
         }
 
         try {
-            this.status = TaskStatus.Running;
             await this.executor(prefix);
             this.status = TaskStatus.Success;
 
@@ -55,15 +93,15 @@ export default class GenericTask implements Task {
                 throw error;
             }
 
-            this.status = TaskStatus.Failed;
-
             if (error instanceof ExecTaskError) {
-                this.errorOutput = error.stderr;
+                this.failedString = error.stderr;
             }
+
+            this.status = TaskStatus.Failed;
         }
     }
 
-    protected shouldSkip(taskKey?: string) {
+    protected shouldSkip(taskKey: string) {
         return this.shouldSkipRegex(taskKey) || this.shouldSkipCache(taskKey);
     }
 
@@ -97,10 +135,14 @@ export default class GenericTask implements Task {
             if (s === TaskStatus.Skipped) return ['↪', chalk.gray];
             return ['⊙', chalk.magenta]; // Replaced with spinner :)
         })(this.status);
-        if (this.status === TaskStatus.Failed && this.errorOutput !== undefined) {
-            const error = `${indent}  ${this.errorOutput.split(/\r?\n/).join(`\n${indent}  `)}`;
+        if (this.status === TaskStatus.Failed && this.failedString !== undefined) {
+            const error = `${indent}  ${this.failedString?.split(/\r?\n/).join(`\n${indent}  `) ?? `${indent}  <no error output>`}`;
             return colour(`${indent + symbol} ${this.key}\n${error}`);
         }
         return colour(`${indent + symbol} ${this.key}`);
+    }
+
+    on(event: 'statusChange', cb: (task: Task) => void) {
+        this.statusChangeCallbacks.push(cb);
     }
 }

@@ -15,14 +15,18 @@ export default class ExecTask extends GenericTask {
                 const poolExec = this.context.taskPool.promise.wrap((execCmd) => new Promise((resolve, reject) => {
                     const p = exec(execCmd);
 
+                    if (!p.stderr || !p.stdout) {
+                        throw new Error('Spawn child process had no stderr or stdout');
+                    }
+
                     let stderr = '';
                     p.stderr.on('data', (data) => {
                         stderr += data;
                     });
 
                     p.on('exit', (code) => {
-                        p.stdout.destroy();
-                        p.stderr.destroy();
+                        p.stdout?.destroy();
+                        p.stderr?.destroy();
 
                         if (code === 0) {
                             resolve(code);

@@ -38,7 +38,7 @@ export const storage = (context: Context, relativePath: string = ''): string => 
  */
 export const generateHashFromPath = (absolutePath: string): string => {
     // The hash is undefined if the path doesn't exist.
-    if (!fs.existsSync(absolutePath)) return undefined;
+    if (!fs.existsSync(absolutePath)) return 'undefined';
 
     const stats = fs.statSync(absolutePath);
     if (stats.isFile()) return hasha(path.basename(absolutePath) + hasha.fromFileSync(absolutePath));
