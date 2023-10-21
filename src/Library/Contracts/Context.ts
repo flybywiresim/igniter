@@ -9,6 +9,7 @@ export interface Context {
     invertRegex: boolean,
     cache?: Cache,
     taskPool: Pool,
+    numWorkers: number,
     showNestedTaskKeys: boolean,
     isTTY: boolean,
 }

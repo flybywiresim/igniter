@@ -1,9 +1,9 @@
 import chalk from 'chalk';
-import {Context} from '../Contracts/Context';
-import {Task, TaskStatus} from '../Contracts/Task';
+import { Context } from '../Contracts/Context';
+import { Task, TaskStatus } from '../Contracts/Task';
 
 export default class TaskOfTasks implements Task {
-    private _context: Context | undefined;
+    private givenContext: Context | undefined;
 
     private taskStatus: TaskStatus = TaskStatus.Queued;
 
@@ -16,7 +16,7 @@ export default class TaskOfTasks implements Task {
     }
 
     protected get context(): Context {
-        const context = this._context;
+        const context = this.givenContext;
 
         if (!context) {
             throw new Error('.context called with no context set on task');
@@ -53,8 +53,11 @@ export default class TaskOfTasks implements Task {
      */
     useContext(context: Context, parentTask: Task | null) {
         this.parent = parentTask;
-        this._context = context;
-        this.tasks.forEach((task) => task.useContext(context, this));
+        this.givenContext = context;
+
+        for (const task of this.tasks) {
+            task.useContext(context, this);
+        }
     }
 
     get key(): string {
@@ -62,22 +65,9 @@ export default class TaskOfTasks implements Task {
             return this.name;
         }
 
-        const prefix = this.parent ? `${this.parent.key}.` : '';
+        const prefix = this.parent ? `${this.parent.key}:` : '';
 
         return `${prefix}${this.name}`;
-    }
-
-    /**
-     * Returns the number of tasks recursively contained by this task of tasks
-     */
-    recursiveCount(): number {
-        let count = 0;
-
-        for (const task of this.tasks) {
-            count += task instanceof TaskOfTasks ? task.recursiveCount() : 1;
-        }
-
-        return count;
     }
 
     /**
@@ -86,17 +76,27 @@ export default class TaskOfTasks implements Task {
     async run(prefix?: string) {
         this.status = TaskStatus.Running;
 
-        const compoundPrefix = `${(prefix || '') + this.key}:`;
-        if (this.concurrent) await this.concurrently(compoundPrefix);
-        else await this.sequentially(compoundPrefix);
+        const compoundPrefix = `${prefix ? `${prefix}:` : ''}${this.name}`;
+
+        if (this.concurrent) {
+            await this.concurrently(compoundPrefix);
+        } else {
+            await this.sequentially(compoundPrefix);
+        }
+    }
+
+    willRun() {
+        return this.tasks.some((task) => task.willRun());
     }
 
     /**
      * Run tasks concurrently. Resolves when all have ran.
      */
-    async concurrently(prefix: string) {
+    private async concurrently(prefix: string) {
         await Promise.all(this.tasks.map((task) => task.run(prefix))).then(() => {
-            this.status = TaskStatus.Success;
+            this.status = this.tasks.every((it) => it.status === TaskStatus.Skipped)
+                ? TaskStatus.Skipped
+                : TaskStatus.Success;
         }).catch(() => {
             this.status = TaskStatus.Failed;
         });
@@ -105,15 +105,19 @@ export default class TaskOfTasks implements Task {
     /**
      * Run tasks sequentially. Resolves when all have ran.
      */
-    async sequentially(prefix: string) {
+    private async sequentially(prefix: string) {
         try {
-            for await (const task of this.tasks) await task.run(prefix);
+            for await (const task of this.tasks) {
+                await task.run(prefix);
+            }
         } catch (e) {
             this.status = TaskStatus.Failed;
             throw e;
         }
 
-        this.status = TaskStatus.Success;
+        this.status = this.tasks.every((it) => it.status === TaskStatus.Skipped)
+            ? TaskStatus.Skipped
+            : TaskStatus.Success;
     }
 
     render(depth: number = 0): string {
@@ -140,7 +144,24 @@ export default class TaskOfTasks implements Task {
         }
     }
 
+    /**
+     * Recursively counts and returns the number of tasks in this {@link TaskOfTasks} that will not be skipped
+     */
+    recursivelyCountTasksToRun(): number {
+        let count = 0;
+
+        for (const task of this.tasks) {
+            if (task instanceof TaskOfTasks) {
+                count += task.recursivelyCountTasksToRun();
+            } else {
+                count += task.willRun() ? 1 : 0;
+            }
+        }
+
+        return count;
+    }
+
     static isTaskOfTasks(subject: Task): subject is TaskOfTasks {
-        return 'recursiveCount' in subject;
+        return 'recursivelyCountTasksToRun' in subject;
     }
 }

@@ -13,9 +13,4 @@ export default class DummyTask extends GenericTask {
             if (this.exitStatus === TaskStatus.Failed) throw Error();
         });
     }
-
-    protected shouldSkip(taskName: string) {
-        if (super.shouldSkip(taskName)) return true;
-        return this.exitStatus === TaskStatus.Skipped;
-    }
 }

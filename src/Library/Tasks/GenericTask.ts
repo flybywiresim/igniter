@@ -6,7 +6,7 @@ import { Context } from '../Contracts/Context';
 import ExecTaskError from './ExecTaskError';
 
 export default class GenericTask implements Task {
-    protected _context: Context | undefined;
+    protected givenContext: Context | undefined;
 
     private taskStatus: TaskStatus = TaskStatus.Queued;
 
@@ -19,7 +19,7 @@ export default class GenericTask implements Task {
     }
 
     protected get context(): Context {
-        const context = this._context;
+        const context = this.givenContext;
 
         if (!context) {
             throw new Error('.context called with no context set on task');
@@ -56,7 +56,7 @@ export default class GenericTask implements Task {
             return this.name;
         }
 
-        const prefix = this.parent ? `${this.parent.key}.` : '';
+        const prefix = this.parent ? `${this.parent.key}:` : '';
 
         return `${prefix}${this.name}`;
     }
@@ -65,16 +65,19 @@ export default class GenericTask implements Task {
      * Register a context with the task (and sub-tasks).
      */
     useContext(context: Context, parentTask: Task) {
-        this._context = context;
+        this.givenContext = context;
         this.parent = parentTask;
+    }
+
+    willRun() {
+        return !(this.shouldSkipRegex(this.key) || this.shouldSkipCache(this.key));
     }
 
     /**
      * Run the task executor.
      */
     async run(prefix?: string) {
-        const taskKey = (prefix || '') + this.key;
-        if (this.shouldSkip(taskKey)) {
+        if (!this.willRun()) {
             this.status = TaskStatus.Skipped;
             return;
         }
@@ -86,7 +89,7 @@ export default class GenericTask implements Task {
             // Set the cache value (will be saved when the overall cache is exported).
             if (this.context.cache) {
                 const generateHash = generateHashFromPaths(this.hashFolders.map((path) => storage(this.context, path)));
-                this.context.cache.set(taskKey, generateHash);
+                this.context.cache.set(this.key, generateHash);
             }
         } catch (error) {
             if (this.context.debug) {
@@ -99,10 +102,6 @@ export default class GenericTask implements Task {
 
             this.status = TaskStatus.Failed;
         }
-    }
-
-    protected shouldSkip(taskKey: string) {
-        return this.shouldSkipRegex(taskKey) || this.shouldSkipCache(taskKey);
     }
 
     protected shouldSkipRegex(taskKey: string) {
@@ -136,6 +135,7 @@ export default class GenericTask implements Task {
             return ['⊙', chalk.magenta]; // Replaced with spinner :)
         })(this.status);
         if (this.status === TaskStatus.Failed && this.failedString !== undefined) {
+            // eslint-disable-next-line max-len
             const error = `${indent}  ${this.failedString?.split(/\r?\n/).join(`\n${indent}  `) ?? `${indent}  <no error output>`}`;
             return colour(`${indent + symbol} ${this.key}\n${error}`);
         }

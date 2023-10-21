@@ -45,6 +45,8 @@ export interface Task {
      */
     run: TaskRunner;
 
+    willRun: () => boolean;
+
     /**
      * The current status of this generic task.
      */

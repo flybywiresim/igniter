@@ -1,15 +1,16 @@
 import { Command } from 'commander';
 import { Pool } from 'task-pool';
+import os from 'os';
 import { findConfigPath, loadConfigTask } from './Helpers';
 import { Context } from './Library/Contracts/Context';
 import { version } from '../package.json';
 import Cache from './Cache';
 import { TaskOfTasks } from './Library';
-import render from './Renderer';
+import Renderer from './Renderer';
 
 const binary = (new Command()).version(version)
     .option('-c, --config <filename>', 'set the configuration file name', 'igniter.config.mjs')
-    .option('-j, --num-workers <number>', 'set the maximum number of workers to use', `${Number.MAX_SAFE_INTEGER}`)
+    .option('-j, --num-workers <number>', 'set the maximum number of workers to use', `${os.cpus().length}`)
     .option('-r, --regex <regex>', 'regular expression used to filter tasks')
     .option('-i, --invert', 'if true, regex will be used to reject tasks')
     .option('-n, --no-cache', 'do not skip tasks, even if hash matches cache')
@@ -28,6 +29,7 @@ const context: Context = {
     filterRegex: options.regex ? RegExp(options.regex) : undefined,
     invertRegex: options.invert,
     taskPool: new Pool({ limit: options.numWorkers, timeout: 120_000 }),
+    numWorkers: options.numWorkers,
     showNestedTaskKeys: true,
     isTTY: process.stdout.isTTY,
 };
@@ -43,7 +45,7 @@ configRootTask.useContext(context, null);
 
 // Run and Render the config root task.
 
-const rootTaskCompletionCallback = render(context, configRootTask as TaskOfTasks);
+const rootTaskCompletionCallback = Renderer.render(context, configRootTask as TaskOfTasks);
 
 configRootTask.run().finally(() => rootTaskCompletionCallback());
 

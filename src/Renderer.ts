@@ -1,138 +1,210 @@
 import cliProgress, { MultiBar, SingleBar } from 'cli-progress';
-import chalk from 'chalk';
+import c from 'chalk';
 import { Task, TaskOfTasks, TaskStatus } from './Library';
 import { Context } from './Library/Contracts/Context';
 
-export default function render(context: Context, configRootTask: TaskOfTasks): () => void {
-    const runningTasks: Task[] = [];
+import packageJson from '../package.json';
 
-    let bars: MultiBar | undefined;
-    let progressBar: SingleBar | undefined;
-    if (context.isTTY) {
-        bars = new cliProgress.MultiBar({});
-        progressBar = bars.create(
-            20,
-            0,
-            undefined,
-            {
-                format: 'progress [{bar}] {percentage}% | {currentlyRunning} | {value}/{total}',
-                noTTYOutput: !context.isTTY,
-                notTTYSchedule: 100
-            },
-        );
+export default class Renderer {
+    static finishedTag(): string {
+        return c.bgGreen(c.blackBright(' Finished '));
     }
 
-    const taskCount = configRootTask.recursiveCount();
+    static warningTag(): string {
+        return c.bgYellow(c.blackBright(' Warning  '));
+    }
 
-    progressBar?.start(taskCount, 0);
+    static failedTag(): string {
+        return c.bgRed(c.blackBright('  Failed  '));
+    }
 
-    const timeouts = new Map<Task, NodeJS.Timeout>();
+    static debugTag(): string {
+        return c.bgMagenta(c.blackBright('  Debug   '));
+    }
 
-    function log(arg: string) {
+    static progressTag(): string {
+        return c.magenta(' Progress ');
+    }
+
+    static infoTag(): string {
+        return c.bgBlue(c.blackBright('   Info   '));
+    }
+
+    static runningTasks: Task[] = [];
+
+    static render(context: Context, configRootTask: TaskOfTasks): () => void {
+        const startTime = Date.now();
+
+        let doneTasks = 0;
+
+        const cursors = ['|', '/', '-', '\\'];
+        let cursorIndex = 0;
+
+        Renderer.runningTasks.length = 0;
+
+        let bars: MultiBar | undefined;
+        let progressBar: SingleBar | undefined;
         if (context.isTTY) {
-            bars?.log(`${arg}\n`);
-        } else {
-            console.log(arg);
-        }
-    }
-
-    function logTakingLongTime(task: Task, startTime: number, interval: number) {
-        if (task.status !== TaskStatus.Running) {
-            return;
-        }
-
-        const seconds = Math.floor((Date.now() - startTime) / 1_000);
-
-        /* eslint-disable max-len */
-        log(
-            `${chalk.bgYellow(chalk.black(chalk.blackBright(' Warning  ')))} ${chalk.yellow(`> Task ${chalk.white(task.key)} is taking a long time (${seconds}s)`)}`,
-        );
-        /* eslint-enable */
-
-        timeouts.set(task, setTimeout(() => {
-            logTakingLongTime(task, startTime, interval);
-        }, interval));
-    }
-
-    function clearTaskTimeout(task: Task) {
-        if (timeouts.has(task)) {
-            clearTimeout(timeouts.get(task) as any);
-            timeouts.delete(task);
-        }
-    }
-
-    configRootTask.on('statusChange', (task) => {
-        if (task.status === TaskStatus.Running && !TaskOfTasks.isTaskOfTasks(task)) {
-            runningTasks.push(task);
-
-            const startTime = Date.now();
-            const warningInterval = context.taskPool.timeout * 0.5;
-
-            timeouts.set(task, setTimeout(() => logTakingLongTime(task, startTime, warningInterval), warningInterval));
-        }
-
-        if (task.status === TaskStatus.Success) {
-            clearTaskTimeout(task);
-
-            let successText: string;
-            if (TaskOfTasks.isTaskOfTasks(task)) {
-                successText = chalk.green(`> Group ${chalk.white(task.key)} finished`);
-            } else {
-                successText = task.key;
-            }
-
-            log(`${chalk.bgGreen(chalk.black(chalk.blackBright(' Finished ')))} ${successText}`);
-        }
-
-        if (task.status === TaskStatus.Failed) {
-            clearTaskTimeout(task);
-
-            const indent = ' '.repeat(11);
-
-            const indentedFailedString = `${indent}${(task.failedString ?? '').split(/\r?\n/).join(`\n${indent}`)}`;
-
-            /* eslint-disable max-len */
-            log(
-                `${chalk.bgRed(chalk.black(chalk.blackBright('  Failed  ')))} ${chalk.red(`${chalk.underline(task.key)}\n${indentedFailedString}`)}`,
+            bars = new cliProgress.MultiBar({ clearOnComplete: true }, cliProgress.Presets.shades_classic);
+            progressBar = bars.create(
+                20,
+                0,
+                undefined,
+                {
+                    clearOnComplete: true,
+                    format: `${Renderer.progressTag()} {bar} {cursor} {percentage}% | {currentlyRunning} | {value}/{total}`,
+                    noTTYOutput: !context.isTTY,
+                    notTTYSchedule: 100,
+                    barsize: 30,
+                },
             );
-            /* eslint-enable */
         }
 
-        if ((task.status === TaskStatus.Success || task.status === TaskStatus.Failed)
-            && !TaskOfTasks.isTaskOfTasks(task) && runningTasks.includes(task)
-        ) {
-            runningTasks.splice(runningTasks.indexOf(task), 1);
+        const tasksToRun = configRootTask.recursivelyCountTasksToRun();
 
+        progressBar?.start(tasksToRun, 0);
+
+        const timeouts = new Map<Task, NodeJS.Timeout>();
+
+        function log(arg: string) {
+            if (context.isTTY) {
+                bars?.log(`${arg}\n`);
+            } else {
+                process.stdout.write(`${arg}\n`);
+            }
+        }
+
+        function updateProgressBar() {
             let tasks = '';
             let renderedTasks = 0;
 
-            for (const runningTask of runningTasks) {
+            cursorIndex = (cursorIndex + 1) % cursors.length;
+
+            if (Renderer.runningTasks.length === 0) {
+                tasks = '<none>';
+            }
+
+            for (let i = 0; i < Renderer.runningTasks.length; i += 1) {
+                const runningTask = Renderer.runningTasks[i];
+
+                const maxLen = Math.max(0, process.stdout.getWindowSize()[0] - 78);
+
+                if (tasks.length > maxLen) {
+                    tasks += `... +${Renderer.runningTasks.length - renderedTasks}`;
+                    break;
+                }
+
                 if (tasks.length > 0) {
                     tasks += ', ';
                 }
 
-                tasks += runningTask.key;
-
-                if (tasks.length > 32) {
-                    tasks += `... +${runningTasks.length - renderedTasks}`;
+                if (runningTask.key.length <= maxLen) {
+                    tasks += runningTask.key;
+                } else {
+                    tasks += `+${Renderer.runningTasks.length - renderedTasks}`;
                     break;
                 }
 
                 renderedTasks += 1;
             }
 
-            const currentlyRunning = `${chalk.blue(`[${tasks}]`)}`;
+            const currentlyRunning = `${c.blue(`[${tasks}]`)}`;
 
-            progressBar?.increment();
-            progressBar?.update({ currentlyRunning });
-        }
-    });
-
-    return () => {
-        for (const [, timeout] of timeouts.entries()) {
-            clearTimeout(timeout);
+            progressBar?.update(doneTasks, { cursor: cursors[cursorIndex], currentlyRunning });
         }
 
-        setTimeout(() => bars?.stop(), 100);
-    };
+        function logTakingLongTime(task: Task, taskStartTime: number, interval: number) {
+            if (task.status !== TaskStatus.Running) {
+                return;
+            }
+
+            const seconds = Math.floor((Date.now() - taskStartTime) / 1_000);
+
+            log(`${Renderer.warningTag()} ${c.yellow(`> Task ${c.white(task.key)} is taking a long time (${seconds}s)`)}`);
+
+            updateProgressBar();
+
+            timeouts.set(task, setTimeout(() => {
+                logTakingLongTime(task, taskStartTime, interval);
+            }, interval));
+        }
+
+        function clearTaskTimeout(task: Task) {
+            if (timeouts.has(task)) {
+                clearTimeout(timeouts.get(task) as any);
+                timeouts.delete(task);
+            }
+        }
+
+        const versionString = c.white`v${packageJson.version}`;
+        const taskCountString = c.white`${tasksToRun} tasks`;
+        const workersString = c.white`${context.numWorkers} workers`;
+
+        log(`${Renderer.infoTag()} ${c.blue`> Igniter ${versionString}, queueing ${taskCountString} with ${workersString}`}`);
+
+        configRootTask.on('statusChange', (task) => {
+            if (task.status === TaskStatus.Running && !TaskOfTasks.isTaskOfTasks(task)) {
+                Renderer.runningTasks.push(task);
+
+                const taskStartTime = Date.now();
+                const warningInterval = context.taskPool.timeout * 0.5;
+
+                timeouts.set(task, setTimeout(() => logTakingLongTime(task, taskStartTime, warningInterval), warningInterval));
+            }
+
+            if (task.status === TaskStatus.Success) {
+                clearTaskTimeout(task);
+
+                let successText: string;
+                if (TaskOfTasks.isTaskOfTasks(task)) {
+                    successText = c.green(`> Group ${c.white(task.key)} finished`);
+                } else {
+                    successText = c.green(`> Task ${c.white(task.key)} finished`);
+                }
+
+                doneTasks += 1;
+
+                log(`${Renderer.finishedTag()} ${successText}`);
+            }
+
+            if (task.status === TaskStatus.Failed) {
+                clearTaskTimeout(task);
+
+                const indent = ' '.repeat(11);
+
+                const indentedFailedString = `${indent}${(task.failedString ?? '').split(/\r?\n/).join(`\n${indent}`)}`;
+
+                doneTasks += 1;
+
+                log(`${Renderer.failedTag()} ${c.red(`${c.underline(task.key)}\n${indentedFailedString}`)}`);
+            }
+
+            if ((task.status === TaskStatus.Success || task.status === TaskStatus.Failed)
+                && !TaskOfTasks.isTaskOfTasks(task) && Renderer.runningTasks.includes(task)
+            ) {
+                Renderer.runningTasks.splice(Renderer.runningTasks.indexOf(task), 1);
+            }
+
+            updateProgressBar();
+        });
+
+        return () => {
+            for (const [, timeout] of timeouts.entries()) {
+                clearTimeout(timeout);
+            }
+
+            setTimeout(() => {
+                bars?.stop();
+
+                process.stdout.clearLine(0);
+
+                const seconds = (Date.now() - startTime) / 1_000;
+
+                const taskCountStr = c.white(`${doneTasks.toString()} tasks`);
+                const timeStr = c.white(`${seconds.toFixed(1)}s`);
+
+                console.log(`${Renderer.infoTag()} ${c.blue(`> Ran ${taskCountStr} in ${timeStr}`)}`);
+            }, 100);
+        };
+    }
 }
