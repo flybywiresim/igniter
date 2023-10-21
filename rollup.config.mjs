@@ -19,7 +19,7 @@ export default [
         ],
     },
     {
-        input: 'src/Library/Index.ts',
+        input: 'src/Library/index.ts',
         output: {
             file: './dist/index.mjs',
         },
