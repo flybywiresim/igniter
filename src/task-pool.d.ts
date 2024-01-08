@@ -28,11 +28,11 @@ declare module "task-pool" {
     export class Pool<TPoolStyle extends PoolStyle = 'callback'> {
         constructor(init: Partial<PoolInit>)
 
-        timeout: Pick<PoolInit, 'timeout'>
+        timeout: PoolInit['timeout']
 
         style: TPoolStyle
 
-        limit: Pick<PoolInit, 'limit'>
+        limit: PoolInit['limit']
 
         running: number
 

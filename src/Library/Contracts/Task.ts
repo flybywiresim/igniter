@@ -45,18 +45,26 @@ export interface Task {
      */
     run: TaskRunner;
 
+    willRun: () => boolean;
+
     /**
      * The current status of this generic task.
      */
     status: TaskStatus;
 
+    failedString: string | null;
+
+    parent: Task | null;
+
     /**
      * Register a context with the task (and sub-tasks).
      */
-    useContext(context: Context): void;
+    useContext(context: Context, parentTask: Task | null): void;
 
     /**
      * Render the task.
      */
     render(depth?: number): string;
+
+    on(event: 'statusChange', cb: (task: Task) => void): void;
 }

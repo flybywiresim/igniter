@@ -8,7 +8,7 @@ export interface Cache {
     /**
      * Get the value for a given key in the cache.
      */
-    get(key: string): string;
+    get(key: string): string | undefined;
 
     /**
      * Set a value for a given key in the cache.

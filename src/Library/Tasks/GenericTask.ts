@@ -6,65 +6,102 @@ import { Context } from '../Contracts/Context';
 import ExecTaskError from './ExecTaskError';
 
 export default class GenericTask implements Task {
-    protected context: Context;
+    protected givenContext: Context | undefined;
 
-    protected errorOutput: string;
+    private taskStatus: TaskStatus = TaskStatus.Queued;
 
-    public status: TaskStatus = TaskStatus.Queued;
+    public parent: Task | null = null;
+
+    public failedString: string | null = null;
+
+    public get status() {
+        return this.taskStatus;
+    }
+
+    protected get context(): Context {
+        const context = this.givenContext;
+
+        if (!context) {
+            throw new Error('.context called with no context set on task');
+        }
+
+        return context;
+    }
+
+    public set status(newStatus: TaskStatus) {
+        if (this.taskStatus !== newStatus) {
+            this.taskStatus = newStatus;
+
+            for (const cb of this.statusChangeCallbacks) {
+                cb(this);
+            }
+        }
+    }
+
+    private statusChangeCallbacks: ((task: Task) => void)[] = [];
 
     /**
-     * @param key The key of this generic task.
+     * @param name The name of this generic task.
      * @param executor The TaskRunner used to run this task.
      * @param hashFolders Folders used to create caching hash.
      */
     constructor(
-        public key: string,
+        private name: string,
         private executor: TaskRunner,
         private hashFolders: string[] = [],
     ) {}
 
+    get key(): string {
+        if (!this.context.showNestedTaskKeys) {
+            return this.name;
+        }
+
+        const prefix = this.parent ? `${this.parent.key}:` : '';
+
+        return `${prefix}${this.name}`;
+    }
+
     /**
      * Register a context with the task (and sub-tasks).
      */
-    useContext(context: Context) {
-        this.context = context;
+    useContext(context: Context, parentTask: Task) {
+        this.givenContext = context;
+        this.parent = parentTask;
+    }
+
+    willRun() {
+        return !(this.shouldSkipRegex(this.key) || this.shouldSkipCache(this.key));
     }
 
     /**
      * Run the task executor.
      */
     async run(prefix?: string) {
-        const taskKey = (prefix || '') + this.key;
-        if (this.shouldSkip(taskKey)) {
+        if (!this.willRun()) {
             this.status = TaskStatus.Skipped;
             return;
         }
 
         try {
-            this.status = TaskStatus.Running;
             await this.executor(prefix);
             this.status = TaskStatus.Success;
 
             // Set the cache value (will be saved when the overall cache is exported).
             if (this.context.cache) {
                 const generateHash = generateHashFromPaths(this.hashFolders.map((path) => storage(this.context, path)));
-                this.context.cache.set(taskKey, generateHash);
+                this.context.cache.set(this.key, generateHash);
             }
         } catch (error) {
             if (this.context.debug) {
                 throw error;
             }
 
-            this.status = TaskStatus.Failed;
-
             if (error instanceof ExecTaskError) {
-                this.errorOutput = error.stderr;
+                this.failedString = error.stderr;
             }
-        }
-    }
 
-    protected shouldSkip(taskKey?: string) {
-        return this.shouldSkipRegex(taskKey) || this.shouldSkipCache(taskKey);
+            this.status = TaskStatus.Failed;
+        }
     }
 
     protected shouldSkipRegex(taskKey: string) {
@@ -97,10 +134,15 @@ export default class GenericTask implements Task {
             if (s === TaskStatus.Skipped) return ['↪', chalk.gray];
             return ['⊙', chalk.magenta]; // Replaced with spinner :)
         })(this.status);
-        if (this.status === TaskStatus.Failed && this.errorOutput !== undefined) {
-            const error = `${indent}  ${this.errorOutput.split(/\r?\n/).join(`\n${indent}  `)}`;
+        if (this.status === TaskStatus.Failed && this.failedString !== undefined) {
+            // eslint-disable-next-line max-len
+            const error = `${indent}  ${this.failedString?.split(/\r?\n/).join(`\n${indent}  `) ?? `${indent}  <no error output>`}`;
             return colour(`${indent + symbol} ${this.key}\n${error}`);
         }
         return colour(`${indent + symbol} ${this.key}`);
+    }
+
+    on(event: 'statusChange', cb: (task: Task) => void) {
+        this.statusChangeCallbacks.push(cb);
     }
 }

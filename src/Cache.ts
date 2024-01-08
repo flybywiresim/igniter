@@ -31,7 +31,7 @@ export default class Cache implements CacheContract {
     /**
      * Get the value for a given key in the cache.
      */
-    get(key: string): string {
+    get(key: string): string | undefined {
         return this.map.get(key);
     }
 

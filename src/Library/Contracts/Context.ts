@@ -5,8 +5,11 @@ export interface Context {
     debug: boolean,
     configPath: string,
     dryRun: boolean,
-    filterRegex: RegExp|undefined,
+    filterRegex: RegExp | undefined,
     invertRegex: boolean,
     cache?: Cache,
     taskPool: Pool,
+    numWorkers: number,
+    showNestedTaskKeys: boolean,
+    isTTY: boolean,
 }
