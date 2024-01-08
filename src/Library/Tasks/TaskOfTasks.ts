@@ -45,7 +45,7 @@ export default class TaskOfTasks implements Task {
     constructor(
         private name: string,
         public tasks: Task[],
-        private concurrent = false,
+        public concurrent = false,
     ) {}
 
     /**

@@ -30,6 +30,10 @@ export default class Renderer {
         return c.bgBlue(c.blackBright('   Info   '));
     }
 
+    static emptyTag(): string {
+        return ' '.repeat(10);
+    }
+
     static runningTasks: Task[] = [];
 
     static render(context: Context, configRootTask: TaskOfTasks): () => void {
@@ -64,6 +68,8 @@ export default class Renderer {
 
         progressBar?.start(tasksToRun, 0);
 
+        let indent = '';
+
         const timeouts = new Map<Task, NodeJS.Timeout>();
 
         function log(arg: string) {
@@ -87,7 +93,7 @@ export default class Renderer {
             for (let i = 0; i < Renderer.runningTasks.length; i += 1) {
                 const runningTask = Renderer.runningTasks[i];
 
-                const maxLen = Math.max(0, process.stdout.getWindowSize()[0] - 78);
+                const maxLen = Math.max(0, process.stdout.getWindowSize()[0] - 100);
 
                 if (tasks.length > maxLen) {
                     tasks += `... +${Renderer.runningTasks.length - renderedTasks}`;
@@ -120,7 +126,9 @@ export default class Renderer {
 
             const seconds = Math.floor((Date.now() - taskStartTime) / 1_000);
 
-            log(`${Renderer.warningTag()} ${c.yellow(`> Task ${c.white(task.key)} is taking a long time (${seconds}s)`)}`);
+            log(`${Renderer.warningTag()} ${
+                c.yellow(`> ${indent}Task ${c.white(task.key)} is taking a long time (${seconds}s)`)
+            }`);
 
             updateProgressBar();
 
@@ -152,14 +160,34 @@ export default class Renderer {
                 timeouts.set(task, setTimeout(() => logTakingLongTime(task, taskStartTime, warningInterval), warningInterval));
             }
 
-            if (task.status === TaskStatus.Success) {
+            const isRootSequentialTaskChild = TaskOfTasks.isTaskOfTasks(task) && task.parent
+                && TaskOfTasks.isTaskOfTasks(task.parent) && !task.parent.parent && !task.parent.concurrent;
+            const renderAsRootSequentialTaskChild = isRootSequentialTaskChild
+                && (task as TaskOfTasks).tasks.filter((it) => it.willRun()).length > 1;
+
+            // Special styling for root sequential task children
+            if (renderAsRootSequentialTaskChild) {
+                if (task.status === TaskStatus.Running) {
+                    log(`${Renderer.emptyTag()} ${c.green`  ┌`} ${c.underline`Starting group '${task.key}'`}`);
+                    indent = '│ ';
+                } else if (task.status === TaskStatus.Success) {
+                    log(`${Renderer.emptyTag()} ${c.green`  └`} ${c.underline`Done with group '${task.key}'`}`);
+                    indent = '';
+                }
+            }
+
+            const isTaskOfTasksWithOnlyOneTaskRun = TaskOfTasks.isTaskOfTasks(task)
+                && task.tasks.filter((it) => it.willRun()).length === 1;
+
+            // We do not print a line for a task of tasks which only had one child task run
+            if (!isRootSequentialTaskChild && !isTaskOfTasksWithOnlyOneTaskRun && task.status === TaskStatus.Success) {
                 clearTaskTimeout(task);
 
                 let successText: string;
                 if (TaskOfTasks.isTaskOfTasks(task)) {
-                    successText = c.green(`> Group ${c.white(task.key)} finished`);
+                    successText = c.green(`> ${indent}Group ${c.white(task.key)} finished`);
                 } else {
-                    successText = c.green(`> Task ${c.white(task.key)} finished`);
+                    successText = c.green(`> ${indent}Task ${c.white(task.key)} finished`);
                 }
 
                 doneTasks += 1;
@@ -170,13 +198,14 @@ export default class Renderer {
             if (task.status === TaskStatus.Failed) {
                 clearTaskTimeout(task);
 
-                const indent = ' '.repeat(11);
+                const errorIndent = ' '.repeat(13);
 
-                const indentedFailedString = `${indent}${(task.failedString ?? '').split(/\r?\n/).join(`\n${indent}`)}`;
+                const indentedFailedString = `${errorIndent}${indent}${(task.failedString ?? '')
+                    .split(/\r?\n/).join(`\n${errorIndent}${indent}`)}`;
 
                 doneTasks += 1;
 
-                log(`${Renderer.failedTag()} ${c.red(`${c.underline(task.key)}\n${indentedFailedString}`)}`);
+                log(`${Renderer.failedTag()} ${c.red(`> ${indent}${c.underline(task.key)}\n${indentedFailedString}`)}`);
             }
 
             if ((task.status === TaskStatus.Success || task.status === TaskStatus.Failed)
@@ -200,10 +229,9 @@ export default class Renderer {
 
                 const seconds = (Date.now() - startTime) / 1_000;
 
-                const taskCountStr = c.white(`${doneTasks.toString()} tasks`);
                 const timeStr = c.white(`${seconds.toFixed(1)}s`);
 
-                console.log(`${Renderer.infoTag()} ${c.blue(`> Ran ${taskCountStr} in ${timeStr}`)}`);
+                console.log(`${Renderer.infoTag()} ${c.blue(`> Ran ${taskCountString} in ${timeStr}`)}`);
             }, 100);
         };
     }
