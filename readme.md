@@ -15,8 +15,10 @@ Options:
                                 "igniter.config.mjs")
   -j, --num-workers <number>    set the maximum number of workers to use
                                 (default: Number.MAX_SAFE_INTEGER)
-  -r, --regex <regex>           regular expression used to filter tasks
-  -i, --invert                  if true, regex will be used to reject tasks
+  -r, --regex <regex>           regular expression used to filter tasks, all
+                                must pass if multiple args
+  -i, --invert                  if true, previous regex will be used to reject
+                                tasks
   --no-cache                    do not skip tasks, even if hash matches cache
   --no-tty                      do not show updating output, just show a single
                                 render
