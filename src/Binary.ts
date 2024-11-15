@@ -18,7 +18,7 @@ function addRegex(regex: string): FilterRegex[] {
 
 function addRegexInvert(): void {
     if (allRegex.length === 0) {
-        throw new Error('Cannot ignore the last regex when there are no regex args!');
+        throw new Error('Cannot invert the last regex when there are no regex args!');
     }
     allRegex[allRegex.length - 1].invert = true;
 }
