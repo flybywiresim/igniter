@@ -68,10 +68,10 @@ export default class GenericTask implements Task {
     }
 
     protected shouldSkipRegex(taskKey: string) {
-        if (this.context.dryRun) return true;
-        if (this.context.filterRegex === undefined) return this.context.invertRegex;
-        const regexMatches = this.context.filterRegex.test(taskKey);
-        return this.context.invertRegex ? regexMatches : !regexMatches;
+        if (this.context.dryRun) {
+            return true;
+        }
+        return !this.context.filterRegex.every((r) => (r.regex.test(taskKey) ? !r.invert : r.invert));
     }
 
     protected shouldSkipCache(taskKey: string) {
